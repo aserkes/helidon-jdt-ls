@@ -8,9 +8,7 @@ import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.search.SearchMatch;
 import org.eclipse.jdt.core.search.SearchPattern;
-import org.eclipse.lsp4mp.commons.MicroProfilePropertiesScope;
 import org.eclipse.lsp4mp.commons.metadata.ConfigurationMetadata;
-import org.eclipse.lsp4mp.jdt.core.ArtifactResolver;
 import org.eclipse.lsp4mp.jdt.core.BuildingScopeContext;
 import org.eclipse.lsp4mp.jdt.core.IPropertiesProvider;
 import org.eclipse.lsp4mp.jdt.core.SearchContext;
@@ -18,7 +16,6 @@ import org.eclipse.lsp4mp.jdt.core.utils.JDTTypeUtils;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,10 +27,6 @@ public class HelidonPropertiesProvider implements IPropertiesProvider {
     private IJavaProject javaProject;
     private IClasspathEntry[] resolvedClasspath;
     private boolean excludeTestCode;
-    private List<MicroProfilePropertiesScope> scopes;
-    private ArtifactResolver artifactResolver;
-    private List<IClasspathEntry> searchClassPathEntries;
-
     private final Gson gson;
 
     public HelidonPropertiesProvider() {
@@ -51,6 +44,9 @@ public class HelidonPropertiesProvider implements IPropertiesProvider {
                     String jarPath = entry.getPath().toOSString();
                     IPackageFragmentRoot root = javaProject.getPackageFragmentRoot(jarPath);
                     if (root != null) {
+                        if (!root.getElementName().contains("helidon")) {
+                            continue;
+                        }
                         ConfigurationMetadata metadata = getMetadata(root);
                         if (metadata != null) {
                             context.getCollector().merge(metadata);
@@ -61,22 +57,12 @@ public class HelidonPropertiesProvider implements IPropertiesProvider {
                     break;
             }
         }
-
-        if (javaProject != null) {
-            context.getCollector().addItemMetadata(
-                    "javaProject - " + javaProject.getProject().getName(), "type", "descirption", "sourceType", "sourceField", "sourceMethod", "defaultValue", "extensionName", false, 0
-            );
-        }
-
     }
 
     public void contributeToClasspath(BuildingScopeContext context, IProgressMonitor monitor) {
         javaProject = context.getJavaProject();
         resolvedClasspath = context.getResolvedClasspath();
         excludeTestCode = context.isExcludeTestCode();
-        scopes = context.getScopes();
-        artifactResolver = context.getArtifactResolver();
-        searchClassPathEntries = context.getSearchClassPathEntries();
     }
 
     private ConfigurationMetadata getMetadata(IPackageFragmentRoot root) {
