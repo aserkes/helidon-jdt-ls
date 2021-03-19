@@ -1,1 +1,1 @@
-To execute it correctly run `mvn clean install` for parent project.
+To execute it correctly run `mvn clean install` from parent project.
